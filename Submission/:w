@@ -66,18 +66,18 @@ class Test_Class_Loss_Functions():
 		assert True
 
 
+@pytest.mark.parametrize('experiment_params, expected_receptive_field',[
+			(exp2_params(), 1),
+			(exp3_params(), 22)])
 class Test_Class_Setup_Functions():
-	@pytest.mark.parametrize('experiment_params, expected_receptive_field',[
-				(exp2_params(), 1),
-				(exp3_params(), 22)])
 	def test_getReceptiveField(self, experiment_params, input_dim, expected_receptive_field):
 		filterDim = experiment_params["filterDim"]
 		assert expected_receptive_field == rx.getReceptiveField(input_dim, filterDim)
 
-
 	def test_setUpNetwork(self):
 		assert True
 		
+
 class Test_Class_Network_Layers():
 
 	def test_perceptron_init(self):
@@ -92,12 +92,11 @@ class Test_Class_Network_Layers():
 		#TODO
 		assert True
 	
+	@pytest.mark.parametrize('experiment_params', 'prop_init', [
+				(exp2_params(), 1),
+				(exp3_params(), 1)])
 	def test_conv_filter_init(self):
-		pass
-		#fit = experiment_params["filterDim"]
-		#test = prop_init
-		#assert test!=fit
-		#assert True
+		assert True
 
 	def test_conv_filter_forwardPass(self):
 		#TODO

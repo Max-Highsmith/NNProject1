@@ -1,8 +1,5 @@
-##
-###TODO YOU SHOULD NOT BE EDITING THIS
-###
-
 import pandas as pd
+import matplotlib.pyplot as plt
 import pdb
 from PIL import Image
 import imageio
@@ -26,26 +23,54 @@ def SquaredError(guess, label, derive=False):
     return (1.0/2.0)*np.sum(np.power((guess-label), 2.0))
 
 def getTrainingData(expNum=2):
-    trainDF1   = pd.read_csv("Data/Part2_1_Train.csv")
-    testDF1    = pd.read_csv("Data/Part2_1_Test.csv")
-    trainDF3   = pd.read_csv("Data/Part2_3_Train.csv")
-    testDF3    = pd.read_csv("Data/Part2_3_Test.csv")
+    if expNum == 2:
+        trainDF1   = pd.read_csv("Data/Part2_1_Train.csv")
+        testDF1    = pd.read_csv("Data/Part2_1_Test.csv")
+        trainDF3   = pd.read_csv("Data/Part2_3_Train.csv")
+        testDF3    = pd.read_csv("Data/Part2_3_Test.csv")
 
-    trainArr1  = trainDF1.values
-    trainArr3  = trainDF3.values
-    testArr1   = testDF1.values
-    testArr3   = testDF3.values
+        trainArr1  = trainDF1.values
+        trainArr3  = trainDF3.values
+        testArr1   = testDF1.values
+        testArr3   = testDF3.values
 
-    #[1,0] = 1
-    #[0,1] = 3
-    train_labels = np.vstack((np.repeat([[1,0]], trainArr1.shape[0],0),
-                             np.repeat([[0,1]], trainArr3.shape[0],0)))
-    test_labels  = np.vstack((np.repeat([[1,0]], testArr1.shape[0], 0),
-                             np.repeat([[0,1]], testArr3.shape[0],0)))
+        #[1,0] = 1
+        #[0,1] = 3
+        train_labels = np.vstack((np.repeat([[1,0]], trainArr1.shape[0],0),
+                                 np.repeat([[0,1]], trainArr3.shape[0],0)))
+        test_labels  = np.vstack((np.repeat([[1,0]], testArr1.shape[0], 0),
+                                 np.repeat([[0,1]], testArr3.shape[0],0)))
 
-    train_data = np.vstack((trainArr1, trainArr3))
-    test_data  = np.vstack((testArr1, testArr3))
-    return train_data, test_data, train_labels, test_labels
+        train_data = np.vstack((trainArr1, trainArr3))
+        test_data  = np.vstack((testArr1, testArr3))
+        return train_data, test_data, train_labels, test_labels
+    
+    if expNum ==3:
+        trainList    =[]
+        testList     =[]
+        trainLabList =[]
+        testLabList  =[]
+
+        numOfEachClass =20
+        for o in range(0,10):
+            tempTrain    = pd.read_csv("Data/Part3_"+str(o)+"_Train.csv").values[0:numOfEachClass]
+            tempTest     = pd.read_csv("Data/Part3_"+str(o)+"_Test.csv").values[0:numOfEachClass]
+            hotEncode    = np.repeat([0],10)
+            hotEncode[o] = 1
+            tempTrainLab = np.repeat([hotEncode], numOfEachClass,0) #tempTrain.shape[0],0)
+            tempTestLab  = np.repeat([hotEncode], numOfEachClass,0) #tempTest.shape[0],0)
+
+            trainList.append(tempTrain)
+            testList.append(tempTest)
+            trainLabList.append(tempTrainLab)
+            testLabList.append(tempTestLab)
+
+        train_data   = np.vstack(trainList)
+        test_data    = np.vstack(testList)
+        train_labels = np.vstack(trainLabList)
+        test_labels  = np.vstack(testLabList)
+        return train_data, test_data, train_labels, test_labels
+            
 
 
 class combo:
@@ -114,24 +139,27 @@ class perceptron:
         # returns dE/dz
         del_V         =  repChainRule*self.weights
         return  del_V
-        
-class conv_filter:
-    def __init__(self, size, initialization, activation):
+
+
+ 
+class conv_filter_alt:
+    def __init__(self, size, initialization, activation, numFilters):
         self.size      = size;
 
         #handling initialization strategy
         if initialization =='He':
-            self.kernel  = np.random.randn(size,size)*np.sqrt(2/size)
+            self.kernel  = np.random.randn(numFilters, size,size)*np.sqrt(2/size)
         if initialization  =='uniform':
-            self.kernel    = np.random.random((size, size)).astype(np.float64)/(size*size)  #TODO make dependent on initStrat 
+            self.kernel    = np.random.random((numFilters, size, size)).astype(np.float64)/(size*size)  #TODO make dependent on initStrat 
             self.bias      = np.random.random(1)
         if initialization  =='normal':
-            self.kernel    = np.random.normal(size=(size, size)).astype(np.float64)/(size*size)
+            self.kernel    = np.random.normal(size=(numFilters, size, size)).astype(np.float64)/(size*size)
             self.bias      = np.random.normal(1)
         if initialization  =='Xav':
-            self.kernel = np.random.randn(size, size)*np.sqrt(2/(size+size))
+            self.kernel = np.random.randn(numFilters, size, size)*np.sqrt(2/(size+size))
             self.bias      = np.random.normal(1)
         #used in backprop
+        self.numFilters = numFilters
         self.lastInVec = 'err'
 
         #handling activation function
@@ -141,30 +169,29 @@ class conv_filter:
             self.act = tanhActivation
 
     def forwardPass(self, inVec, Eval=False):
-        outputVal = np.ones((inVec.shape[0]-self.kernel.shape[0]+1, inVec.shape[1]-self.kernel.shape[1]+1))
+        outputVal = np.ones((self.numFilters, inVec.shape[0]-self.kernel.shape[1]+1, inVec.shape[1]-self.kernel.shape[2]+1))
         if Eval==False:
             self.lastInVec = inVec
-        for i in range(0, inVec.shape[0]-self.kernel.shape[0]+1):
-            for j in range(0, inVec.shape[1]-self.kernel.shape[1]+1):
-                matProduct = inVec[i:i+self.kernel.shape[0], j:j+self.kernel.shape[0]]* self.kernel #element wise product
-                outputVal[i][j] = np.sum(matProduct)
+        for l in range(0, self.numFilters):
+            for i in range(0, inVec.shape[0]-self.kernel.shape[1]+1):
+                for j in range(0, inVec.shape[1]-self.kernel.shape[2]+1):
+                    matProduct = inVec[i:i+self.kernel.shape[1], j:j+self.kernel.shape[2]]* self.kernel[l] #element wise product
+                    outputVal[l][i][j] = np.sum(matProduct)
         return self.act(outputVal) #CHECK THIS OUT
 
     def backProp(self, chainRulePrefix, lr):
         del_act   = self.act(chainRulePrefix, derive=True)
         chainRule = del_act * chainRulePrefix
         del_A     = np.zeros(self.kernel.shape)
-        for m in range(0, chainRulePrefix.shape[0]):
-            for n in range(0, chainRulePrefix.shape[1]):
-                for i in range(0, self.kernel.shape[0]):
-                    for j in range(0, self.kernel.shape[1]):
-                       del_A[i,j] +=  self.lastInVec[m+i,n+j]*chainRulePrefix[m,n]
+        for l in range(0, self.numFilters):
+            for m in range(0, chainRulePrefix.shape[1]):
+                for n in range(0, chainRulePrefix.shape[2]):
+                    for i in range(0, self.kernel.shape[1]):
+                        for j in range(0, self.kernel.shape[2]):
+                           del_A[l][i,j] +=  self.lastInVec[m+i,n+j]*chainRulePrefix[l][m,n]
         #update kernel weights
         self.kernel -= lr*del_A
     
-    def getKernel(self):
-        return self.kernel
-
 def decisionLayer(inVec, label):
     if inVec.shape != label.shape:
         pdb.set_trace()
@@ -176,12 +203,29 @@ def decisionLayer(inVec, label):
     else:
         return 0
 
-    
-#data_presentation   = 'serial', 'batch', 'mini-batch'
-#order               = 'fixed', 'shuffle'
-#activation_function = 'tanh', 'sigmoid', 'relu'
-#initialization      = 'normal', 'uniform'
-#learning_rate       = 0.01, 0.001, 0.0001
+def saveImagesAndTimeLines(numFilters,filterW, trainAccTimeline, trainLossTimeline,
+                            testAccTimeline, testLossTimeline,SaveString):
+    cmaps = plt.colormaps()
+    for l in range(0, numFilters):
+        plt.imshow(filterW.kernel[l], cmap=cmaps[2*l])#, interpolation='nearest')
+        plt.savefig("Filters/part3/filter"+str(l)+"_"+SaveString+".jpg")
+
+    #Save Timelines
+    np.save("Timelines/part3/trainAcc"+SaveString, trainAccTimeline)
+    np.save("Timelines/part3/trainLoss"+SaveString, trainLossTimeline)
+    np.save("Timelines/part3/testAcc"+SaveString, testAccTimeline)
+    np.save("Timelines/part3/testLoss"+SaveString, testLossTimeline)
+
+
+def getReceptiveField(inputDim, filterDim):
+	return inputDim-filterDim+1
+
+def setUpNetwork(netParams):
+	conv_filter =  conv_filter_alt(filterDim = netParams["filterDim"],
+			initialization=netParams["initialization"], 
+			activation=netParams["activation_function"],
+			numFilters=netParams["numFilters"])
+
 def evaluateNetwork(epochs,
                     data_presentation,
                     order, 
@@ -191,21 +235,26 @@ def evaluateNetwork(epochs,
                     project_part,
                     loss_fn,
                     freezeP,
+                    filterDim,
+                    numFilters,
                     trial_num):
-    train_data, test_data, train_labels, test_labels = getTrainingData()
+    train_data, test_data, train_labels, test_labels = getTrainingData(project_part)
     numTrainSamples = train_data.shape[0]
     numTestSamples  = test_data.shape[0]
+
     inputDim     = 28
-    filterDim    = 27
-    orangeW      = conv_filter(filterDim, initialization=initialization, activation=activation_function)
-    greenW       = conv_filter(filterDim, initialization=initialization, activation=activation_function)
-    numFilters   = 2
+    filterW      = conv_filter_alt(filterDim, initialization=initialization, activation=activation_function, numFilters=numFilters)
     rfM          = inputDim - filterDim+1  #receptive field Height
     rfN          = inputDim - filterDim+1  #receptive field Width
-    dimVecOutput = 2
+    if project_part==2:
+        dimVecOutput = 2
+    if project_part==3:
+        dimVecOutput = 10
     combineLayer = combo((numFilters, rfM, rfN), dimVecOutput)# num
     dimVecInput  = numFilters*rfM*rfN
     outP       = perceptron(dimVecInput, dimVecOutput, initialization=initialization, activation=activation_function, freezeP=freezeP)#numfilters, numOutputs
+
+
     #Training
     trainLossTimeline = []
     trainAccTimeline  = []
@@ -226,14 +275,14 @@ def evaluateNetwork(epochs,
 
             VISUALIZE_DATA=False
             if VISUALIZE_DATA:
+                sample = np.flip(sample)
+                sample = np.rot90(sample)
+                sample = np.rot90(sample)
                 imageio.imwrite("SanityCheckSample/train_"+str(sIndx)+"label_"+str(label)+".jpg", sample)
 
-
             #Forward Pass Train Data
-            orangeV   = orangeW.forwardPass(sample)
-            greenV    = greenW.forwardPass(sample)
-            innerV    = np.stack((orangeV, greenV))
-            V         = combineLayer.forwardPass(innerV)
+            filterV   = filterW.forwardPass(sample)
+            V         = combineLayer.forwardPass(filterV)#innerV
             output    = outP.forwardPass(V)
 
             #Train Error Evaluation
@@ -242,7 +291,6 @@ def evaluateNetwork(epochs,
             trainAcc = decisionLayer(output, label)
             EpochTrainAcc += trainAcc
 
-            
             BACKPROPAGATE = True 
             if BACKPROPAGATE:
             #backward Pass
@@ -250,8 +298,7 @@ def evaluateNetwork(epochs,
                 del_V     = outP.backProp(del_Er, learning_rate)
                 del_X1    = combineLayer.backProp(del_V)
                 for r in range(0, del_X1.shape[0]):
-                    orangeW.backProp(del_X1[r][0],learning_rate)
-                    greenW.backProp(del_X1[r][1], learning_rate)
+                    filterW.backProp(del_X1[r], learning_rate)
      
        for tIndx in range(0, test_data.shape[0]):
            #get data
@@ -259,12 +306,13 @@ def evaluateNetwork(epochs,
            label  = test_labels[tIndx]
 
            if VISUALIZE_DATA:
+                sample = np.flip(sample)
+                sample = np.rot90(sample)
+                sample = np.rot90(sample)
                 imageio.imwrite("SanityCheckSample/test_"+str(tIndx)+"label_"+str(label)+".jpg", sample)
            #Forward Pass Test Data
-           orangeV = orangeW.forwardPass(sample, Eval=True)
-           greenV  = greenW.forwardPass(sample, Eval=True)
-           innerV  = np.stack((orangeV, greenV))
-           V       = combineLayer.forwardPass(innerV, Eval=True)
+           filterV  = filterW.forwardPass(sample, Eval=True)
+           V       = combineLayer.forwardPass(filterV, Eval=True)#innerV
            output  = outP.forwardPass(V, Eval=True)
 
            #Test Error Evaluation
@@ -297,21 +345,31 @@ def evaluateNetwork(epochs,
                 "_loss_"+str(loss_fn)+""
                 "_epoch_"+str(epochs)+""
                 "_freezeP_"+str(freezeP)+""
+                "_filterDim_"+str(filterDim)+""
+                "_numFilter_"+str(numFilters)+""
                 "_trial_"+str(trial_num))
 
+    
+    saveImagesAndTimeLines(numFilters,filterW,
+                            trainAccTimeline, trainLossTimeline,
+                            testAccTimeline, testLossTimeline,
+                            SaveString)
+
+    '''
     #Save images
     import matplotlib.pyplot as plt
-    plt.imshow(orangeW.getKernel(), cmap='autumn')#, interpolation='nearest')
-    plt.savefig("Filters/orange_"+SaveString+".jpg")
-    plt.imshow(greenW.getKernel(), cmap='summer')#, interpolation='nearest')
-    plt.savefig("Filters/green_"+SaveString+".jpg")
+    #cmaps=['autumn','summer','winter', 'spring']
+    cmaps = plt.colormaps()
+    for l in range(0, numFilters):
+        plt.imshow(filterW.kernel[l], cmap=cmaps[2*l])#, interpolation='nearest')
+        plt.savefig("Filters/part3/filter"+str(l)+"_"+SaveString+".jpg")
 
     #Save Timelines
-    np.save("Timelines/trainAcc"+SaveString, trainAccTimeline)
-    np.save("Timelines/trainLoss"+SaveString, trainLossTimeline)
-    np.save("Timelines/testAcc"+SaveString, testAccTimeline)
-    np.save("Timelines/testLoss"+SaveString, testLossTimeline)
-
+    np.save("Timelines/part3/trainAcc"+SaveString, trainAccTimeline)
+    np.save("Timelines/part3/trainLoss"+SaveString, trainLossTimeline)
+    np.save("Timelines/part3/testAcc"+SaveString, testAccTimeline)
+    np.save("Timelines/part3/testLoss"+SaveString, testLossTimeline)
+    '''
 if __name__=="__main__":
     #TODO data_presentation   = 'serial', 'batch', 'mini-batch'
     #order               = 'fixed', 'shuffle'
@@ -321,7 +379,7 @@ if __name__=="__main__":
 
     learning_rates       = [0.01, 0.001, 0.0001]
     initializations      = ['uniform']
-    activation_functions = ['tanh', 'sigmoid']
+    activation_functions = ['tanh']
     orders               = ['fixed','shuffle']
 
     epochs              = 1000
@@ -333,7 +391,10 @@ if __name__=="__main__":
     loss_fn             = 'SquaredError'
     project_part        = 2
     trial_num           = 2
-    freezeP             = False
+    freezeP             = False #can only be done if num filters = num outputs to error function
+    filterDim           = 28
+    numFilters          = 2
+
 
     evaluateNetwork(epochs = epochs,order=order,
                     activation_function=activation_function,
@@ -343,9 +404,11 @@ if __name__=="__main__":
                     loss_fn =loss_fn,
                     project_part=project_part,
                     trial_num=trial_num,
-                    freezeP=freezeP)
+                    freezeP=freezeP,
+                    filterDim=filterDim,
+                   numFilters=numFilters)
 
-    pdb.set_trace()
+  #  pdb.set_trace()
     for learning_rate in learning_rates:
         for initialization in initializations:
             for activation_function in activation_functions:
@@ -358,4 +421,6 @@ if __name__=="__main__":
                                     loss_fn =loss_fn,
                                     project_part=project_part,
                                     trial_num=trial_num,
-                                    freezeP=freezeP)
+                                    freezeP=freezeP,
+                                    filterDim=filterDim,
+                                    numFilters=numFilters)
