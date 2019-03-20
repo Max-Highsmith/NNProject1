@@ -51,7 +51,7 @@ def getTrainingData(expNum=2):
         trainLabList =[]
         testLabList  =[]
 
-        numOfEachClass =10
+        numOfEachClass =2
         for o in range(0,10):
             tempTrain    = pd.read_csv("Data/part3/Part3_"+str(o)+"_Train.csv").values[0:numOfEachClass]
             tempTest     = pd.read_csv("Data/part3/Part3_"+str(o)+"_Test.csv").values[0:numOfEachClass]
@@ -198,7 +198,6 @@ def runNetwork(**kwargs):
       pass
     for t in trainIndexList:
       #print(str(epoch)+":"+str(t)) 
-
       P   = train_labels[t]
       X_0 = train_data[t]
       X_0 = X_0.reshape((C,D))
@@ -267,15 +266,19 @@ def runNetwork(**kwargs):
 
 
       dE_dA   = np.zeros((L,I,J))
-
-      
       #part 2
-      dXlmn_dZlmn = X_1.reshape(L)
-      for l in range(0,L):
-        for i in range(0,J):
+      if ExNum==2:
+        dXlmn_dZlmn = X_1.reshape(L)
+        for l in range(0,L):
           for i in range(0,I):
-             dE_dA[l,i,j] = X_0[i,j]*ACT(dXlmn_dZlmn[l])*dE_dA[l,i,j]           
-
+            for j in range(0,J):
+               dE_dA[l,i,j] = X_0[i,j]*ACT(dXlmn_dZlmn[l])*dE_V[l]#dE_V[k]           
+      
+      if ExNum==3:
+        for l in range(0,L):
+          for i in range(0,I):
+            for j in range(0,J):
+              dE_dA[l,i,j] = np.sum(X_0[i:C-(I-i), j:D-(J-j)])*np.sum(ACT(X_1[l,:,:]))*np.sum(dE_V.reshape(L,M,N)[l,:,:])
       #BackProp Conv
       '''
       dZr_dXlmn   = np.zeros((L,I,J,M,N))
@@ -360,37 +363,30 @@ def runNetwork(**kwargs):
   saveImagesAndTimeLines(L,A, trainAccTimeline, trainLossTimeline,
                             testAccTimeline, testLossTimeline, kwargs)
 
-
+'''
 #Initial Dimension
 param ={
-'Epochs'  : 20000,
-'ExNum'   : 2,
-'T'       : 31,    # num training samples
+'Epochs'  : 2000,
+'ExNum'   : 3,
+'T'       : 20,    # num training samples
 'TT'      : 98,    # num test samples
-'L'       : 2,     # num Conv Layers 
-'I'       : 28,    # index of conv kernel height
-'J'       : 28,    # index of conv kernel width
+'L'       : 16,     # num Conv Layers 
+'I'       : 7,    # index of conv kernel height
+'J'       : 7,    # index of conv kernel width
 'C'       : 28,    # index of Image height
 'D'       : 28,    # index of Image width
-'R'       : 2,    # outpus of Perceptron
-'lrW'     : 10, # learning rate Perceptron
-'lrA'     : 10,  #learning rate Conv Layer
+'R'       : 10,    # outpus of Perceptron
+'lrW'     : 0.01, # learning rate Perceptron
+'lrA'     : 0.01,  #learning rate Conv Layer
 'ACT'     : "reluAct",
 'LOSS'    : "SquaredError",
 'vis'     : False,
 'ORDER'   : 'Alternate',
 'INIT'    : 'Uniform',
-
+'TrialNum': 0
 }
 runNetwork(**param)
-'''
-for lr in [0.0001,0.001,0.01,0.1]:
-  param['lrW']=lr
-  param['lrA']=lr
-  runNetwork(**param)
 
-for ACT in ['tanhAct','sigmoidAct','noAct', 'reluAct']:
-  param['ACT']=ACT
-  runNetwork(**param)
 '''
+
 print("done")
