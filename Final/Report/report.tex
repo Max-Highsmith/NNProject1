@@ -62,9 +62,9 @@ N=D-J+1.
 
 After the inputs have passed through the convolution layer I apply a non-linear activation function
 \begin{equation}
-	X^{(1)}_{l,m,n} = \sigma^{(1)}(Z_{l,m,n})
+	X^{(1)}_{l,m,n} = \phi^{(1)}(Z_{l,m,n})
 \end{equation}
-I denote the generic non-linear activation as $\sigma$ and describe the different non-linearities considered in the section \ref{Non-Linearities}
+I denote the generic non-linear activation as $\phi$ and describe the different non-linearities considered in the section \ref{Non-Linearities}
 
 After our training data has passed through the non-linearity it must traverse through the perceptron Layer.  However, because of the current formulation of our convolutional layer our data is a tensor of shape (L,M-I, N-J). A fully conencted perceptron expects a 1-dimensional input so it is necessary to flatten the tensor out.  This simply involves unrolling along the dimensions of our tensor via the equation
 \begin{equation}
@@ -94,7 +94,7 @@ z^{(1)}_{r} = \sum_{k\in\mathcal{K}}w_{r,k}v_{k}+b^{(1)}
 
 We then apply a second non-linear activation function.
 \begin{equation}
-x^{(2)}_{1} = \sigma^{(2)}(z^{(1)}_r).
+x^{(2)}_{1} = \phi^{(2)}(z^{(1)}_r).
 \end{equation}
 The output of this non-linear activation will now be treated as a prediction for the label $P(t)$.  We evaluate the effectiveness of this forward pass in predicting the label by using the vector $X^{(2)}$ and $P(t)$ as inputs to an error function which I denote generically as
 \begin{equation}
@@ -159,7 +159,7 @@ b^{(1)} := b^{(1)} - \alpha* \frac{\partial E}{\partial b^{(1)}}
 a_{l,i,j} := a_{l,i,j} - \alpha*\frac{\partial E}{\partial a_{l,i,j}}
 \end{equation}
 \begin{equation}
-b^{(0)} := b^{()_{l}} - \alpha*\frac{\partial E}{\partial b^{(0)}_{l}}
+b^{(0)}_{l} := b^{(0)}_{l} - \alpha*\frac{\partial E}{\partial b^{(0)}_{l}}
 \end{equation}
 Here, $\alpha$ represents the learning rate of our network.
 
@@ -179,17 +179,17 @@ Taking the partial as will be used for backpropagation we see
 We consider multiple different activation functions.
 The first activation function considered is the hyperbolic tangent denoted
 \begin{equation}
-x = \sigma_{th}(z) = \frac{e^{(2z)}-1}{e^{(2z)}+1}
+x = \phi_{th}(z) = \frac{e^{(2z)}-1}{e^{(2z)}+1}
 \end{equation}.
 The tangent
 \begin{equation}
-\frac{\partial \sigma_{th}}{\partial z} = 1 - \sigma_{t}(z)
+\frac{\partial \phi_{th}}{\partial z} = 1 - \phi_{t}(z)
 \end{equation}
 \begin{equation}
-x = \sigma_{s}(z) = \frac{1}{1+e^{-z}}
+x = \phi{s}(z) = \frac{1}{1+e^{-z}}
 \end{equation}
 \begin{equation}
-\frac{\partial \sigma_{s}}{\partial z} = \sigma_{s}(z)(1-\sigma_{s}(z))
+\frac{\partial \phi_{s}}{\partial z} = \phi_{s}(z)(1-\phi_{s}(z))
 \end{equation}
 Both of these activation functions have an advantage of their partials being functions of the activation function.  This is useful in computation of gradients during backpropagation 
 
@@ -240,6 +240,10 @@ ORDER& Order of training Data&Fixed, Shuffle, Random\\
 \section{Experiments}
 \subsection{Order}
 I run the network for experiment 2 in three different orders: Fixed, Shuffled, and Random.  With the sequential ordering I train over all samples with label $1$ followed by all samples with label $3$.  In Shuffled I mix the training data so that it alternates between samples of $3$ and $1$ every iteration.  With random I present the samples to the network in a random ordering.  In all three orderings the Network is presented each sample once per epic
+\includegraphics[scale=.5]{Pictures/part2/OrderTrainLoss}
+\includegraphics[scale=.5]{Pictures/part2/OrderTestLoss}
+\includegraphics[scale=.5]{Pictures/part2/OrderTrainAccuracy}
+\includegraphics[scale=.5]{Pictures/part2/OrderTestAccuracy}
 
 	
 \subsection{Learning Rate}
@@ -254,8 +258,27 @@ $\alpha_a = 0.01$ $\alpha_w = 0.0001$
 
 
 
+
 \subsection{Debuging Error}
 I am fairly certain there is a single, minor error somewhere in my code that is negatively impacting the results of these experiments.  Because of the way this was coded up the parameters for number of filters and filter size do not alter implementation and the only thing differentiating part 3 and part 2 is some configuration settings.  
+
+$\frac{\partial E}{\partial a_{l,i,j}}=
+\frac{Z^{(0)}}{X_{i:C-(I-i)+1, j:D-(J-j)+1}^{(0)}}
+\frac{X^{(1)}_{l_{l,:,:}}}{Z_{l,:,:}^{(0)}}
+\delta X^{(1)}_{l}$
+
+$\frac{\partial E}{\partial b_{l}}=
+\frac{X^{(1)}_{l,:,:}}{Z^{(0)}}_{l,:,:}
+\delta X^{(1)}_{l,:,:}$
+
+$x = \phi_r(z)= max(0,x)$
+$\frac{\partial \phi_r}{\partial z}= $\[ \begin{cases} 
+0 & x\leq 0 \\
+1 & 0\leq x 
+\end{cases}
+\]
+
+$x = z$  $\frac{\partial \phi_n}{\partial z }=0$
 
 
 
